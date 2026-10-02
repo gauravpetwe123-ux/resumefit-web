@@ -1,0 +1,561 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="description" content="Paste a job description and your resume to get a fit score and grounded edits that only reword, reorder or surface what's already in your resume.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%232a4fd4'/%3E%3Ctext x='16' y='22' font-family='Arial,sans-serif' font-size='18' font-weight='700' fill='white' text-anchor='middle'%3ER%3C/text%3E%3C/svg%3E">
+<title>ResumeFit</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Schibsted+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: two-pane workbench. Inputs left, verdict + edits right; stacks on phones. */
+:root {
+  --bg: #f5f6f8;
+  --surface: #ffffff;
+  --ink: #171a20;
+  --muted: #5d6472;
+  --line: #dde1e8;
+  --accent: #2a4fd4;
+  --accent-ink: #ffffff;
+  --quote: #f0f2f6;
+  --strong: #1d7a4c; --strong-bg: #e5f3eb;
+  --partial: #9a5f05; --partial-bg: #fbf0db;
+  --weak: #b03636; --weak-bg: #f8e5e5;
+  --sans: "Schibsted Grotesk", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
+  --r: 10px;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #111318; --surface: #181b22; --ink: #e8ebf1; --muted: #9aa2b1; --line: #2a2f3a;
+    --accent: #8aa2ff; --accent-ink: #0c1022; --quote: #1f232c;
+    --strong: #5cc495; --strong-bg: #15291f; --partial: #e3a64a; --partial-bg: #2c2312;
+    --weak: #f08080; --weak-bg: #2e1a1a; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #111318; --surface: #181b22; --ink: #e8ebf1; --muted: #9aa2b1; --line: #2a2f3a;
+  --accent: #8aa2ff; --accent-ink: #0c1022; --quote: #1f232c;
+  --strong: #5cc495; --strong-bg: #15291f; --partial: #e3a64a; --partial-bg: #2c2312;
+  --weak: #f08080; --weak-bg: #2e1a1a; color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body { background: var(--bg); color: var(--ink); font-family: var(--sans); font-size: 15px; line-height: 1.5; }
+.wrap { max-width: 1180px; margin: 0 auto; padding-inline: 20px; padding-block: 20px 48px; }
+header.top { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding-block: 4px 18px; }
+.brand { font-weight: 700; font-size: 18px; letter-spacing: -0.01em; display: flex; align-items: center; gap: 8px; }
+.brand-mark { width: 22px; height: 22px; border-radius: 6px; background: var(--accent); display: grid; place-items: center; color: var(--accent-ink); font-size: 12px; font-weight: 700; }
+.top a { color: var(--muted); font-size: 13px; text-decoration: none; }
+.top a:hover { color: var(--ink); }
+.intro { display: grid; gap: 6px; margin-block-end: 22px; max-width: 62ch; }
+h1 { font-size: clamp(24px, 3.2vw, 32px); line-height: 1.15; letter-spacing: -0.02em; margin: 0; text-wrap: balance; font-weight: 700; }
+.intro p { margin: 0; color: var(--muted); }
+
+.grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.08fr); gap: 22px; align-items: start; }
+@media (max-width: 920px) { .grid { grid-template-columns: minmax(0, 1fr); } }
+
+.panel { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); padding: 18px; display: grid; gap: 16px; min-width: 0; }
+.field { display: grid; gap: 6px; }
+.field-head { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+label { font-weight: 600; font-size: 14px; }
+.count { font-family: var(--mono); font-size: 11.5px; color: var(--muted); font-variant-numeric: tabular-nums; }
+textarea { width: 100%; resize: vertical; font: 13.5px/1.5 var(--sans); color: var(--ink); background: var(--bg); border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; }
+textarea:focus-visible, button:focus-visible, summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+#jd { min-height: 220px; } #resume { min-height: 300px; }
+.err { color: var(--weak); font-size: 13px; margin: 0; }
+.example-note { font-size: 12.5px; color: var(--muted); margin: 0; }
+.actions { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+button { font: 600 14px var(--sans); border-radius: 8px; padding: 9px 14px; cursor: pointer; border: 1px solid var(--line); background: var(--surface); color: var(--ink); }
+button:hover { border-color: var(--muted); }
+button.primary { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+button.primary:hover { filter: brightness(1.06); }
+button:disabled { opacity: .6; cursor: progress; }
+.privacy { font-size: 12.5px; color: var(--muted); margin: 0; }
+
+.results { display: grid; gap: 16px; min-width: 0; }
+.status { font-size: 13.5px; color: var(--muted); padding: 14px 16px; border: 1px dashed var(--line); border-radius: var(--r); }
+.verdict { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); padding: 18px; display: grid; gap: 14px; }
+.verdict-top { display: flex; flex-wrap: wrap; align-items: center; gap: 14px 18px; }
+.score { font-size: 52px; font-weight: 700; line-height: 1; letter-spacing: -0.03em; font-variant-numeric: tabular-nums; }
+.score small { font-size: 16px; color: var(--muted); font-weight: 500; letter-spacing: 0; }
+.tier { font-weight: 600; font-size: 13px; padding: 4px 10px; border-radius: 999px; }
+.tier.strong { color: var(--strong); background: var(--strong-bg); }
+.tier.partial { color: var(--partial); background: var(--partial-bg); }
+.tier.weak { color: var(--weak); background: var(--weak-bg); }
+.verdict-copy { display: grid; gap: 2px; min-width: 0; flex: 1 1 220px; }
+.verdict-copy strong { font-size: 15px; }
+.verdict-copy span { color: var(--muted); font-size: 13.5px; }
+
+.scale { display: grid; gap: 4px; }
+.bar { position: relative; height: 10px; border-radius: 999px; overflow: hidden; display: grid; grid-template-columns: 45fr 25fr 30fr; }
+.bar i { display: block; }
+.bar i:nth-child(1) { background: var(--weak-bg); } .bar i:nth-child(2) { background: var(--partial-bg); } .bar i:nth-child(3) { background: var(--strong-bg); }
+.marker { position: absolute; top: -3px; width: 3px; height: 16px; border-radius: 2px; background: var(--ink); transform: translateX(-50%); transition: left .5s ease; }
+.ticks { position: relative; height: 14px; font: 11px var(--mono); color: var(--muted); }
+.ticks span { position: absolute; transform: translateX(-50%); }
+.ticks span:first-child { transform: none; } .ticks span:last-child { transform: translateX(-100%); }
+.probs { display: flex; flex-wrap: wrap; gap: 6px 16px; font: 12px var(--mono); color: var(--muted); font-variant-numeric: tabular-nums; }
+.probs b { color: var(--ink); font-weight: 500; }
+
+.block { display: grid; gap: 8px; }
+.block h2 { font-size: 13px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); margin: 0; font-weight: 600; }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.chip { font-size: 12.5px; padding: 3px 9px; border-radius: 999px; border: 1px solid var(--line); background: var(--surface); }
+.chip.have { color: var(--strong); border-color: color-mix(in srgb, var(--strong) 35%, var(--line)); }
+.chip.miss { color: var(--muted); border-style: dashed; }
+.chip em { font-style: normal; color: var(--muted); font-size: 11px; margin-inline-start: 4px; }
+.hint { font-size: 12.5px; color: var(--muted); margin: 0; }
+.warn { font-size: 13px; color: var(--partial); background: var(--partial-bg); border-radius: 8px; padding: 8px 10px; margin: 0; }
+
+.sugg-head { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; }
+.sugg-head h2 { font-size: 17px; text-transform: none; letter-spacing: -0.01em; color: var(--ink); }
+.sugg-head p { margin: 0; color: var(--muted); font-size: 13px; flex-basis: 100%; }
+.suggs { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; counter-reset: s; }
+.sugg { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); padding: 14px 16px; display: grid; gap: 8px; min-width: 0; }
+.sugg-title { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }
+.kind { font: 500 11px var(--mono); text-transform: uppercase; letter-spacing: .06em; color: var(--accent); }
+.sugg h3 { margin: 0; font-size: 15px; font-weight: 600; }
+.sugg p { margin: 0; font-size: 14px; }
+.evidence { display: grid; gap: 4px; }
+.evidence-label { font-size: 11.5px; color: var(--muted); }
+blockquote { margin: 0; background: var(--quote); border-radius: 6px; padding: 8px 10px; font-size: 13px; overflow-wrap: anywhere; }
+.proposal { font: 12.5px var(--mono); background: var(--quote); border-radius: 6px; padding: 8px 10px; overflow-wrap: anywhere; }
+.meets { font-size: 12px; color: var(--muted); }
+.meets b { color: var(--ink); font-weight: 500; }
+
+details.how { border-top: 1px solid var(--line); padding-top: 12px; font-size: 13px; color: var(--muted); }
+details.how summary { cursor: pointer; color: var(--ink); font-weight: 600; }
+details.how p { margin: 8px 0 0; max-width: 70ch; }
+footer { margin-block-start: 28px; font-size: 12.5px; color: var(--muted); max-width: 70ch; }
+.sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+@media (prefers-reduced-motion: reduce) { .marker { transition: none; } }
+
+/* Base reset (the artifact viewer supplied these; a standalone page needs them itself) */
+:root { color-scheme: light; padding-top: env(safe-area-inset-top, 0px); padding-bottom: env(safe-area-inset-bottom, 0px); }
+body { margin: 0; -webkit-font-smoothing: antialiased; }
+img { max-width: 100%; }
+[hidden] { display: none !important; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <div class="brand"><span class="brand-mark" aria-hidden="true">R</span>ResumeFit</div>
+    <a href="#how">How scoring works</a>
+  </header>
+
+  <section class="intro">
+    <h1>See how your resume reads against a job</h1>
+    <p>Paste a job description and your resume. You get a fit score and a few edits that only reword, reorder or surface what's already in your resume.</p>
+  </section>
+
+  <div class="grid">
+    <form class="panel" id="form" novalidate>
+      <div class="field">
+        <div class="field-head"><label for="jd">Job description</label><span class="count" id="jd-count"></span></div>
+        <textarea id="jd" spellcheck="false" placeholder="Paste the full posting, including requirements and nice-to-haves."></textarea>
+        <p class="err" id="jd-err" hidden></p>
+      </div>
+      <div class="field">
+        <div class="field-head"><label for="resume">Your resume</label><span class="count" id="resume-count"></span></div>
+        <textarea id="resume" spellcheck="false" placeholder="Paste your resume as plain text."></textarea>
+        <p class="err" id="resume-err" hidden></p>
+      </div>
+      <p class="example-note" id="example-note">Showing an example job and resume (both fictional). Paste your own to check your fit.</p>
+      <div class="actions">
+        <button type="submit" class="primary" id="run">Check fit</button>
+        <button type="button" id="load-example">Load example</button>
+        <button type="button" id="clear">Clear</button>
+      </div>
+      <p class="privacy">Your text stays in this browser. Nothing is uploaded or saved.</p>
+    </form>
+
+    <section class="results" id="results" aria-live="polite"></section>
+  </div>
+
+  <footer>
+    <details class="how" id="how">
+      <summary>How scoring works</summary>
+      <p>ResumeFit finds the skills and tools a job asks for, separates core requirements from nice-to-haves, and checks which ones your resume shows. Core requirements count twice as much as nice-to-haves. The score is 100 × P(strong) + 50 × P(partial), so it moves smoothly between tiers instead of jumping.</p>
+      <p>Every suggestion quotes the line in your resume it's based on. If ResumeFit can't point to a line, it doesn't make the suggestion. Skills missing from your resume are listed as gaps, never as things to add.</p>
+      <p>This version runs on a rules engine in your browser. A trained fit model and a fine-tuned suggestions model are the planned next step.</p>
+    </details>
+    <p>ResumeFit is a tool for job seekers working on their own resume. It isn't designed or tested for screening candidates.</p>
+  </footer>
+</div>
+
+<script>
+const EXAMPLE_JD = `Senior Data Analyst, Payments
+Ledgerline · Remote (EU)
+
+About the role
+You'll own analytics for our payments product, working with product, engineering and finance to understand how merchants use Ledgerline and where money is lost.
+
+What you'll do
+- Build and maintain dashboards that track payment success, fraud and revenue KPIs
+- Design and analyze A/B testing for checkout and pricing changes
+- Partner with stakeholders across product and finance to define metrics
+- Mentor two junior analysts
+
+Requirements
+- 5+ years in data analytics
+- Expert SQL and Python (pandas)
+- Tableau or a similar BI tool
+- Strong statistics and experimentation skills
+- Clear communication with non-technical stakeholders
+
+Nice to have
+- Experience in fintech or payments
+- dbt and Snowflake
+- Machine learning for fraud detection`;
+
+const EXAMPLE_RESUME = `Data Analyst
+Berlin · open to remote
+
+Summary
+Data analyst with 6 years of experience turning messy product data into decisions. Comfortable owning a metric end to end, from the pipeline to the presentation.
+
+Experience
+Data Analyst, Brightcart (e-commerce) · 2021 to present
+- Ran 40+ checkout experiments with the product team; two changes lifted conversion by 3.2%
+- Wrote PostgreSQL and Python (pandas) jobs that replaced 12 manual weekly reports
+- Built a refund-fraud flag with a simple ML model, cutting chargebacks by 18%
+- Mentored a junior analyst through their first year
+
+Junior Analyst, Northlane Logistics · 2019 to 2021
+- Built weekly KPI reports for operations leads in Excel
+- Presented delivery-time analysis to the regional leadership team
+
+Skills
+Excel, PostgreSQL, Python, pandas, Git, Tableau
+
+Education
+BSc Statistics`;
+
+// name, aliases (lowercase), soft = don't suggest rewording
+const SKILLS = [
+  ["SQL", ["sql", "postgresql", "postgres", "mysql", "t-sql", "sqlite"]],
+  ["Python", ["python"]],
+  ["pandas", ["pandas"]],
+  ["Excel", ["excel", "spreadsheets", "google sheets"]],
+  ["Tableau", ["tableau"]],
+  ["Power BI", ["power bi", "powerbi"]],
+  ["Looker", ["looker", "lookml"]],
+  ["dbt", ["dbt"]],
+  ["Airflow", ["airflow"]],
+  ["Spark", ["spark", "pyspark"]],
+  ["Snowflake", ["snowflake"]],
+  ["BigQuery", ["bigquery"]],
+  ["Redshift", ["redshift"]],
+  ["Databricks", ["databricks"]],
+  ["AWS", ["aws", "amazon web services"]],
+  ["GCP", ["gcp", "google cloud"]],
+  ["Azure", ["azure"]],
+  ["Docker", ["docker"]],
+  ["Kubernetes", ["kubernetes", "k8s"]],
+  ["Machine learning", ["machine learning", "ml"]],
+  ["Deep learning", ["deep learning"]],
+  ["NLP", ["nlp", "natural language processing"]],
+  ["LLMs", ["llm", "llms", "large language models", "generative ai", "genai"]],
+  ["Prompt engineering", ["prompt engineering"]],
+  ["PyTorch", ["pytorch"]],
+  ["TensorFlow", ["tensorflow"]],
+  ["scikit-learn", ["scikit-learn", "sklearn"]],
+  ["Statistics", ["statistics", "statistical"]],
+  ["A/B testing", ["a/b testing", "a/b tests", "a/b test", "ab testing", "split testing", "experimentation", "experiments", "experiment"]],
+  ["Regression", ["regression"]],
+  ["Forecasting", ["forecasting", "forecasts", "forecast"]],
+  ["Dashboards", ["dashboards", "dashboard", "data visualization", "data visualisation", "data viz"]],
+  ["ETL", ["etl", "elt", "data pipelines", "data pipeline"]],
+  ["Data modeling", ["data modeling", "data modelling", "dimensional modeling", "star schema"]],
+  ["Data quality", ["data quality", "data validation"]],
+  ["Product analytics", ["product analytics", "funnel analysis", "funnels", "cohort analysis", "retention analysis"]],
+  ["Mixpanel", ["mixpanel"]],
+  ["Amplitude", ["amplitude"]],
+  ["Google Analytics", ["google analytics", "ga4"]],
+  ["Segmentation", ["segmentation", "customer segments"]],
+  ["Marketing analytics", ["marketing analytics", "attribution modeling", "marketing mix"]],
+  ["Financial modeling", ["financial modeling", "financial modelling", "financial models"]],
+  ["Fraud detection", ["fraud"]],
+  ["Fintech", ["fintech", "payments"]],
+  ["SaaS", ["saas"]],
+  ["Salesforce", ["salesforce"]],
+  ["Product management", ["product management"]],
+  ["Roadmapping", ["roadmapping", "roadmaps", "roadmap"]],
+  ["User research", ["user research", "user interviews", "usability testing"]],
+  ["Agile", ["agile", "scrum", "kanban"]],
+  ["Jira", ["jira"]],
+  ["Figma", ["figma"]],
+  ["JavaScript", ["javascript"]],
+  ["TypeScript", ["typescript"]],
+  ["React", ["react", "react.js", "reactjs"]],
+  ["Node.js", ["node.js", "nodejs"]],
+  ["Java", ["java"]],
+  ["Go", ["golang"]],
+  ["C++", ["c++"]],
+  ["REST APIs", ["rest apis", "rest api", "restful"]],
+  ["Git", ["git", "github", "gitlab"]],
+  ["CI/CD", ["ci/cd", "continuous integration", "github actions", "jenkins"]],
+  ["Metrics", ["kpis", "kpi", "metrics", "okrs"], true],
+  ["Stakeholder management", ["stakeholders", "stakeholder", "cross-functional", "cross functional"], true],
+  ["Communication", ["communication", "communicating", "presented", "presenting", "presentations"], true],
+  ["Project management", ["project management"], true],
+].map(([name, aliases, soft]) => ({
+  name, soft: !!soft,
+  res: aliases.map(a => ({ a, re: new RegExp("(^|[^a-z0-9+#/])(" + a.replace(/[.*+?^${}()|[\]\\]/g, "\\$&") + ")(?=$|[^a-z0-9+#/])", "g") })),
+}));
+
+const $ = id => document.getElementById(id);
+const esc = s => s.replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+const norm = a => a.toLowerCase().replace(/[^a-z0-9]/g, "").replace(/s$/, "");
+
+function hits(text, skill) {
+  const lower = text.toLowerCase(), out = [];
+  for (const { re } of skill.res) {
+    re.lastIndex = 0; let m;
+    while ((m = re.exec(lower))) {
+      const i = m.index + m[1].length;
+      out.push({ index: i, surface: text.slice(i, i + m[2].length) });
+    }
+  }
+  return out.sort((x, y) => x.index - y.index);
+}
+
+function lineAt(text, i) {
+  const s = text.lastIndexOf("\n", i - 1) + 1;
+  let e = text.indexOf("\n", i); if (e < 0) e = text.length;
+  return { text: text.slice(s, e).trim().replace(/^[-•*·]\s*/, ""), start: s };
+}
+
+// Lines under "Requirements"/"What you'll do" are core; "Nice to have"/"Preferred" and intro text are bonus.
+function jdModes(jd) {
+  const spans = []; let mode = "context", off = 0;
+  for (const line of jd.split("\n")) {
+    const l = line.trim().toLowerCase();
+    if (l.length < 48) {
+      if (/(nice to have|nice-to-have|preferred|bonus|good to have|a plus)/.test(l)) mode = "nice";
+      else if (/(requirement|qualification|must have|what you.ll (do|need|bring)|responsibilit|you have|about you|looking for)/.test(l)) mode = "core";
+    }
+    spans.push({ start: off, end: off + line.length, mode }); off += line.length + 1;
+  }
+  return spans;
+}
+const modeAt = (spans, i) => (spans.find(s => i >= s.start && i <= s.end) || { mode: "context" }).mode;
+
+function analyze(jd, resume) {
+  const spans = jdModes(jd), len = Math.max(resume.length, 1);
+  const asked = [];
+  for (const sk of SKILLS) {
+    const jh = hits(jd, sk); if (!jh.length) continue;
+    const core = jh.some(h => modeAt(spans, h.index) === "core");
+    const rh = hits(resume, sk);
+    asked.push({ sk, core, weight: core ? 1 : 0.5, jdTerm: jh[0].surface, jdIndex: jh[0].index, res: rh });
+  }
+  const have = asked.filter(a => a.res.length), miss = asked.filter(a => !a.res.length);
+  let c, fallback = false;
+  const total = asked.reduce((s, a) => s + a.weight, 0);
+  if (total > 0) c = have.reduce((s, a) => s + a.weight, 0) / total;
+  else { fallback = true; c = wordOverlap(jd, resume); }
+
+  const jdYears = (jd.match(/(\d{1,2})\s*\+?\s*(?:-\s*\d{1,2}\s*)?(?:years|yrs)/i) || [])[1];
+  const resYears = Math.max(0, ...[...resume.matchAll(/(\d{1,2})\s*\+?\s*(?:years|yrs)/gi)].map(m => +m[1]));
+  let yearsNote = null;
+  if (jdYears && resYears && resYears < +jdYears) { c *= 0.85; yearsNote = `The job asks for ${jdYears}+ years. Your resume mentions ${resYears}.`; }
+
+  const z = [7 * (c - 0.6), 0.6, 7 * (0.35 - c)].map(Math.exp), sum = z[0] + z[1] + z[2];
+  const p = { strong: z[0] / sum, partial: z[1] / sum, weak: z[2] / sum };
+  const score = Math.round(100 * p.strong + 50 * p.partial);
+  const tier = Object.entries(p).sort((a, b) => b[1] - a[1])[0][0];
+
+  return { asked, have, miss, p, score, tier, fallback, yearsNote, suggestions: suggest(jd, resume, have, len) };
+}
+
+function wordOverlap(jd, resume) {
+  const stop = new Set("with that this have from your will they their about what work team role able into across using years experience".split(" "));
+  const words = t => new Set((t.toLowerCase().match(/[a-z][a-z+#.-]{3,}/g) || []).filter(w => !stop.has(w)));
+  const J = words(jd), R = words(resume); if (!J.size) return 0;
+  let n = 0; J.forEach(w => R.has(w) && n++);
+  return Math.min(1, (n / J.size) * 1.6);
+}
+
+function suggest(jd, resume, have, len) {
+  const out = [], hard = have.filter(a => !a.sk.soft).sort((a, b) => a.jdIndex - b.jdIndex);
+
+  // Reword: resume uses a different term for the same skill.
+  const reword = hard.filter(a => norm(a.jdTerm) !== norm(a.res[0].surface));
+  const rewordCard = a => {
+    const ab = a.sk.name === "A/B testing" && /^experiment/i.test(a.res[0].surface);
+    return {
+      kind: "Reword", title: `Use the job's term: “${a.jdTerm}”`,
+      body: `Your resume says “${a.res[0].surface}”. The job says “${a.jdTerm}”. ${ab ? "If these were controlled tests, call them A/B tests. " : "It's the same skill, so use their wording. "}Recruiters skim for the posting's words, and so do keyword filters.`,
+      evidence: [lineAt(resume, a.res[0].index).text], meets: a.sk.name,
+    };
+  };
+
+  // Reorder: core skills that first appear late in the resume.
+  const buried = hard.filter(a => a.core && a.res[0].index / len > 0.6).slice(0, 3);
+  const buriedCard = buried.length && {
+    kind: "Reorder", title: `Move ${list(buried.map(a => a.sk.name))} higher`,
+    body: `${buried.length > 1 ? "These are core requirements" : "This is a core requirement"}, but your resume only mentions ${buried.length > 1 ? "them" : "it"} near the end. Name ${buried.length > 1 ? "them" : "it"} in your summary or under your most recent role, where a quick skim will catch ${buried.length > 1 ? "them" : "it"}.`,
+    evidence: [...new Set(buried.map(a => lineAt(resume, a.res[0].index).text))], meets: buried.map(a => a.sk.name).join(", "),
+  };
+
+  // Reorder: lead a role with the result that matches the most requirements.
+  const lines = resume.split("\n").map(l => l.trim()).filter(l => /\d/.test(l) && /^[-•*·]/.test(l));
+  let best = null;
+  for (const l of lines) {
+    const ms = hard.filter(a => a.sk.res.some(({ re }) => { re.lastIndex = 0; return re.test(l.toLowerCase()); }));
+    if (ms.length && (!best || ms.length > best.ms.length)) best = { l, ms };
+  }
+  const resultCard = best && {
+    kind: "Reorder", title: "Lead with this result",
+    body: `This bullet pairs ${list(best.ms.map(a => a.sk.name))} with a number. Make it the first bullet under its role, because it backs up what the job asks for.`,
+    evidence: [best.l.replace(/^[-•*·]\s*/, "")], meets: best.ms.map(a => a.sk.name).join(", "),
+  };
+
+  // Surface: leadership evidence for a senior role.
+  let leadCard = null;
+  if (/\b(senior|lead|principal|staff|head of|manager|mentor)/i.test(jd)) {
+    const m = resume.match(/^.*\b(led|mentored|managed|coached|headed|supervised)\b.*$/im);
+    if (m && m.index / len > 0.25) leadCard = {
+      kind: "Surface", title: "Put your leadership in the summary",
+      body: "The role is senior, and your resume already shows leadership, but only further down. Say it in your summary, in your own words and with your own numbers.",
+      evidence: [m[0].trim().replace(/^[-•*·]\s*/, "")], meets: "Seniority",
+    };
+  }
+
+  // Surface: one skills line built only from skills you already list.
+  let skillsCard = null;
+  if (hard.length >= 3) {
+    const si = resume.search(/^\s*skills\b/im);
+    const win = si >= 0 ? resume.slice(si, si + 320).toLowerCase() : "";
+    const notListed = hard.filter(a => !a.sk.res.some(({ re }) => { re.lastIndex = 0; return re.test(win); }));
+    if (notListed.length) skillsCard = {
+      kind: "Surface", title: "Group your matching skills in one line",
+      body: `Your Skills section leaves out ${list(notListed.map(a => a.res[0].surface))}, though your experience shows ${notListed.length > 1 ? "them" : "it"}. One line, in the job's order and using your own terms:`,
+      proposal: "Skills: " + hard.map(a => a.res[0].surface).join(" · "),
+      evidence: [...new Set(notListed.slice(0, 2).map(a => lineAt(resume, a.res[0].index).text))], meets: hard.map(a => a.sk.name).join(", "),
+    };
+  }
+
+  reword.filter(a => a.core).slice(0, 2).forEach(a => out.push(rewordCard(a)));
+  [buriedCard, resultCard, leadCard, skillsCard].forEach(cd => cd && out.push(cd));
+  reword.filter(a => !a.core).forEach(a => out.push(rewordCard(a)));
+  // Guardrail: keep only suggestions whose quoted evidence really exists in the resume.
+  return out.filter(s => s.evidence.every(e => e && resume.includes(e))).slice(0, 5);
+}
+
+const list = xs => xs.length < 2 ? (xs[0] || "") : xs.slice(0, -1).join(", ") + " and " + xs[xs.length - 1];
+
+const VERDICT = {
+  strong: ["Strong fit", "Your resume covers most of what this job asks for."],
+  partial: ["Partial fit", "You match a good part of this job. Some requirements are missing or hard to find."],
+  weak: ["Weak fit", "This job asks for a lot that your resume doesn't show."],
+};
+
+function render(r) {
+  const core = r.asked.filter(a => a.core), nice = r.asked.filter(a => !a.core);
+  const coreHave = core.filter(a => a.res.length).length, niceHave = nice.filter(a => a.res.length).length;
+  const [label, line] = VERDICT[r.tier];
+  const f = x => x.toFixed(2);
+  let h = `
+  <div class="verdict">
+    <div class="verdict-top">
+      <div class="score" aria-label="Fit score ${r.score} out of 100">${r.score}<small> / 100</small></div>
+      <span class="tier ${r.tier}">${label}</span>
+      <div class="verdict-copy"><strong>${line}</strong>
+        <span>${r.fallback ? "We couldn't find specific skills in this posting, so this score uses general word overlap." :
+          `${coreHave} of ${core.length} core requirements found${nice.length ? ` · ${niceHave} of ${nice.length} nice-to-haves` : ""}`}</span></div>
+    </div>
+    <div class="scale" aria-hidden="true">
+      <div class="bar"><i></i><i></i><i></i><span class="marker" style="left:${r.score}%"></span></div>
+      <div class="ticks"><span style="left:0">0</span><span style="left:45%">45</span><span style="left:70%">70</span><span style="left:100%">100</span></div>
+    </div>
+    <div class="probs"><span>P(strong) <b>${f(r.p.strong)}</b></span><span>P(partial) <b>${f(r.p.partial)}</b></span><span>P(weak) <b>${f(r.p.weak)}</b></span></div>
+    ${r.yearsNote ? `<p class="warn">${esc(r.yearsNote)}</p>` : ""}
+  </div>`;
+
+  if (r.asked.length) h += `
+  <div class="block">
+    <h2>In your resume</h2>
+    <div class="chips">${r.have.length ? r.have.map(a => `<span class="chip have">${esc(a.sk.name)}${a.core ? "" : "<em>bonus</em>"}</span>`).join("") : `<span class="hint">None of the listed skills yet.</span>`}</div>
+  </div>
+  <div class="block">
+    <h2>Not in your resume</h2>
+    <div class="chips">${r.miss.length ? r.miss.sort((a, b) => b.weight - a.weight).map(a => `<span class="chip miss">${esc(a.sk.name)}<em>${a.core ? "core" : "bonus"}</em></span>`).join("") : `<span class="hint">Nothing missing from the skills we recognise.</span>`}</div>
+    ${r.miss.length ? `<p class="hint">We don't suggest adding these. If you have this experience, describe it in your own words.</p>` : ""}
+  </div>`;
+
+  h += `<div class="block">
+    <div class="sugg-head"><h2>Suggested edits</h2>${r.suggestions.length ? `<button type="button" id="copy">Copy edits</button>` : ""}
+      <p>Each edit quotes the line in your resume it's based on.</p></div>`;
+  if (!r.suggestions.length) h += `<p class="status">Your resume already shows everything it can for this job. The remaining gaps are experience it doesn't mention, and we won't suggest adding that.</p>`;
+  else h += `<ol class="suggs">${r.suggestions.map(s => `
+    <li class="sugg">
+      <div class="sugg-title"><span class="kind">${s.kind}</span><h3>${esc(s.title)}</h3></div>
+      <p>${esc(s.body)}</p>
+      ${s.proposal ? `<div class="proposal">${esc(s.proposal)}</div>` : ""}
+      <div class="evidence"><span class="evidence-label">From your resume</span>${s.evidence.map(e => `<blockquote>${esc(e)}</blockquote>`).join("")}</div>
+      <div class="meets">Matches the job's <b>${esc(s.meets)}</b></div>
+    </li>`).join("")}</ol>`;
+  h += `</div>`;
+  $("results").innerHTML = h;
+
+  const copy = $("copy");
+  if (copy) copy.addEventListener("click", () => {
+    const txt = r.suggestions.map((s, i) => `${i + 1}. ${s.title}\n${s.body}${s.proposal ? "\n" + s.proposal : ""}\nFrom your resume: "${s.evidence.join('" / "')}"`).join("\n\n");
+    const done = () => { copy.textContent = "Copied"; setTimeout(() => (copy.textContent = "Copy edits"), 1600); };
+    try { navigator.clipboard.writeText(txt).then(done, () => fallbackCopy(txt, done)); } catch { fallbackCopy(txt, done); }
+  });
+}
+
+function fallbackCopy(txt, done) {
+  const ta = document.createElement("textarea"); ta.value = txt; ta.className = "sr"; document.body.appendChild(ta);
+  ta.select(); try { document.execCommand("copy"); done(); } catch {} ta.remove();
+}
+
+function counts() {
+  for (const id of ["jd", "resume"]) {
+    const w = ($(id).value.trim().match(/\S+/g) || []).length;
+    $(id + "-count").textContent = w ? `${w.toLocaleString()} words` : "";
+  }
+  $("example-note").hidden = !($("jd").value === EXAMPLE_JD && $("resume").value === EXAMPLE_RESUME);
+}
+
+function validate() {
+  let ok = true;
+  const check = (id, msg) => {
+    const bad = $(id).value.trim().length < 80;
+    $(id + "-err").hidden = !bad; $(id + "-err").textContent = bad ? msg : "";
+    if (bad) ok = false;
+  };
+  check("jd", "Paste the full job description. ResumeFit needs its requirements to compare against.");
+  check("resume", "Paste your full resume as text. A few lines aren't enough to judge fit.");
+  return ok;
+}
+
+function run(instant) {
+  if (!validate()) { $("results").innerHTML = `<p class="status">Add both texts to see your fit.</p>`; return; }
+  const btn = $("run"), r = analyze($("jd").value, $("resume").value);
+  if (instant) return render(r);
+  btn.disabled = true; btn.textContent = "Checking…";
+  $("results").innerHTML = `<p class="status">Scoring fit…</p>`;
+  setTimeout(() => { $("results").innerHTML = `<p class="status">Checking each edit against your resume…</p>`; }, 350);
+  setTimeout(() => { render(r); btn.disabled = false; btn.textContent = "Check fit"; }, 750);
+}
+
+$("form").addEventListener("submit", e => { e.preventDefault(); run(false); });
+$("load-example").addEventListener("click", () => { $("jd").value = EXAMPLE_JD; $("resume").value = EXAMPLE_RESUME; counts(); run(false); });
+$("clear").addEventListener("click", () => {
+  $("jd").value = ""; $("resume").value = ""; counts();
+  ["jd-err", "resume-err"].forEach(id => ($(id).hidden = true));
+  $("results").innerHTML = `<p class="status">Paste a job description and your resume, then choose Check fit.</p>`; $("jd").focus();
+});
+["jd", "resume"].forEach(id => $(id).addEventListener("input", counts));
+
+$("jd").value = EXAMPLE_JD; $("resume").value = EXAMPLE_RESUME; counts(); run(true);
+</script>
+</body>
+</html>
