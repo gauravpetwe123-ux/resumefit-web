@@ -1,0 +1,37 @@
+# Fails (and GitHub emails the repo owner) if the live site stops serving ResumeFit.
+name: Site check
+
+on:
+  push:
+    branches: [main]
+  schedule:
+    - cron: "17 */6 * * *"   # every 6 hours
+  workflow_dispatch:
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Give Render time to deploy the push
+        if: github.event_name == 'push'
+        run: sleep 150
+
+      - name: Check both pages serve the real content
+        env:
+          SITE: ${{ vars.SITE_URL || 'https://resumefit-gauravpetwe.onrender.com' }}
+        run: |
+          set -uo pipefail
+          check() {
+            url="$1"; expect="$2"
+            for attempt in 1 2 3; do
+              if curl -fsSL --max-time 30 "$url" | grep -qF "$expect"; then
+                echo "OK  $url"; return 0
+              fi
+              echo "Attempt $attempt failed for $url, retrying in 20s"; sleep 20
+            done
+            echo "::error::$url did not return the expected page ($expect)"; return 1
+          }
+          status=0
+          check "$SITE/" "<title>ResumeFit</title>" || status=1
+          check "$SITE/guide.html" "<title>ResumeFit Build Guide</title>" || status=1
+          exit $status

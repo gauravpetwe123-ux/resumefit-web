@@ -1,6 +1,6 @@
 services:
   - type: web
-    name: resumefit
+    name: resumefit-gauravpetwe
     runtime: static
     staticPublishPath: .
     headers:
