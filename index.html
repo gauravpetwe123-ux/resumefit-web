@@ -132,6 +132,60 @@ footer { margin-block-start: 28px; font-size: 12.5px; color: var(--muted); max-w
 .sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
 @media (prefers-reduced-motion: reduce) { .marker { transition: none; } }
 
+/* --- Header nav + proof strip --- */
+.top nav { display: flex; gap: 16px; flex-wrap: wrap; }
+.proof { display: flex; flex-wrap: wrap; gap: 8px 22px; margin: 4px 0 0; padding: 0; list-style: none; font-size: 13px; color: var(--muted); }
+.proof li { display: flex; align-items: center; gap: 7px; }
+.proof li::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: var(--accent); flex: none; }
+.proof b { color: var(--ink); font-weight: 600; }
+
+/* --- Under the hood --- */
+.built { margin-block-start: 56px; display: grid; gap: 30px; }
+.built-head { display: grid; gap: 8px; max-width: 70ch; }
+.eyebrow { font: 500 12px var(--mono); text-transform: uppercase; letter-spacing: .08em; color: var(--accent); margin: 0; }
+.built h2 { font-size: clamp(22px, 2.6vw, 28px); line-height: 1.2; letter-spacing: -0.02em; margin: 0; text-wrap: balance; }
+.built-head p { margin: 0; color: var(--muted); }
+.built h3 { font-size: 13px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); margin: 0 0 10px; font-weight: 600; }
+
+.pipe { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; }
+@media (max-width: 860px) { .pipe { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 480px) { .pipe { grid-template-columns: minmax(0, 1fr); } }
+.stage { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); padding: 14px; display: grid; gap: 10px; align-content: start; min-width: 0; position: relative; }
+.stage-n { font: 500 11px var(--mono); color: var(--muted); }
+.stage h4 { margin: 0; font-size: 15px; }
+.ver { display: grid; gap: 3px; font-size: 13px; }
+.ver + .ver { border-top: 1px dashed var(--line); padding-top: 8px; }
+.pill { justify-self: start; font: 500 10.5px var(--mono); text-transform: uppercase; letter-spacing: .05em; padding: 2px 7px; border-radius: 999px; }
+.pill.live { color: var(--strong); background: var(--strong-bg); }
+.pill.next { color: var(--accent); background: color-mix(in srgb, var(--accent) 12%, transparent); }
+
+.stats { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; }
+@media (max-width: 860px) { .stats { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+.stat { border-top: 2px solid var(--ink); padding-top: 10px; display: grid; gap: 4px; min-width: 0; }
+.stat .big { font-size: 28px; font-weight: 700; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; line-height: 1.1; }
+.stat .what { font-size: 13px; }
+.stat .src { font: 11px var(--mono); color: var(--muted); }
+
+.decisions { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+@media (max-width: 760px) { .decisions { grid-template-columns: minmax(0, 1fr); } }
+.dr { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); padding: 16px; display: grid; gap: 8px; min-width: 0; }
+.dr h4 { margin: 0; font-size: 15.5px; }
+.dr dl { margin: 0; display: grid; grid-template-columns: 84px minmax(0, 1fr); gap: 6px 10px; font-size: 13.5px; }
+.dr dt { font: 500 11px/1.9 var(--mono); text-transform: uppercase; letter-spacing: .05em; color: var(--muted); }
+.dr dd { margin: 0; }
+
+.gates { list-style: none; margin: 0; padding: 0; display: grid; gap: 0; border: 1px solid var(--line); border-radius: var(--r); background: var(--surface); }
+.gates li { display: grid; grid-template-columns: 74px minmax(0, 1fr); gap: 14px; padding: 14px 16px; border-bottom: 1px solid var(--line); font-size: 14px; }
+.gates li:last-child { border-bottom: 0; }
+.gates .v { font: 600 13px var(--mono); }
+.gates .v small { display: block; font-weight: 400; color: var(--muted); font-size: 11px; }
+.gates p { margin: 0; } .gates p + p { color: var(--muted); font-size: 13px; margin-top: 3px; }
+
+.cta { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+.cta a { font: 600 14px var(--sans); border-radius: 8px; padding: 9px 14px; text-decoration: none; border: 1px solid var(--line); color: var(--ink); background: var(--surface); }
+.cta a.primary { background: var(--ink); color: var(--bg); border-color: var(--ink); }
+.cta span { font-size: 13px; color: var(--muted); }
+
 /* Base reset (the artifact viewer supplied these; a standalone page needs them itself) */
 :root { color-scheme: light; padding-top: env(safe-area-inset-top, 0px); padding-bottom: env(safe-area-inset-bottom, 0px); }
 body { margin: 0; -webkit-font-smoothing: antialiased; }
@@ -143,12 +197,20 @@ img { max-width: 100%; }
 <div class="wrap">
   <header class="top">
     <div class="brand"><span class="brand-mark" aria-hidden="true">R</span>ResumeFit</div>
-    <a href="#how">How scoring works</a>
+    <nav aria-label="Site">
+      <a href="#built">How it's built</a>
+      <a href="guide.html">Build guide</a>
+    </nav>
   </header>
 
   <section class="intro">
     <h1>See how your resume reads against a job</h1>
     <p>Paste a job description and your resume. You get a fit score and a few edits that only reword, reorder or surface what's already in your resume.</p>
+    <ul class="proof">
+      <li><b>Grounded</b> every edit quotes your resume</li>
+      <li><b>Private</b> runs in your browser, no LLM API calls</li>
+      <li><b>Two-model roadmap</b> from-scratch scorer + LoRA-tuned Qwen</li>
+    </ul>
   </section>
 
   <div class="grid">
@@ -175,12 +237,79 @@ img { max-width: 100%; }
     <section class="results" id="results" aria-live="polite"></section>
   </div>
 
+  <section class="built" id="built" aria-labelledby="built-title">
+    <div class="built-head">
+      <p class="eyebrow">Under the hood</p>
+      <h2 id="built-title">A grounded engine today. Two purpose-built models next.</h2>
+      <p>ResumeFit makes no calls to an LLM API. Version 1 is a deterministic engine with a verifier, so it can't invent experience you don't have. Each stage below gets replaced by a model of its own only after that model clears a ship gate I set before training it.</p>
+    </div>
+
+    <div>
+      <h3>The pipeline</h3>
+      <div class="pipe">
+        <div class="stage"><span class="stage-n">01 · Read</span><h4>Parse the posting</h4>
+          <div class="ver"><span class="pill live">Live</span>Finds skills and tools, and splits core requirements from nice-to-haves.</div></div>
+        <div class="stage"><span class="stage-n">02 · Score</span><h4>Fit Scorer</h4>
+          <div class="ver"><span class="pill live">Live · v1</span>Weighted coverage turned into tier probabilities.</div>
+          <div class="ver"><span class="pill next">Next · v2</span>20.5M-parameter transformer with its own 16k-token BPE tokenizer, pretrained from scratch.</div></div>
+        <div class="stage"><span class="stage-n">03 · Suggest</span><h4>Suggestions</h4>
+          <div class="ver"><span class="pill live">Live · v1</span>Rules for reword, reorder and surface edits.</div>
+          <div class="ver"><span class="pill next">Next · v3</span>Qwen3-0.6B fine-tuned with LoRA (rank 16), conditioned on the fit score.</div></div>
+        <div class="stage"><span class="stage-n">04 · Verify</span><h4>Grounding check</h4>
+          <div class="ver"><span class="pill live">Live</span>Code drops any edit whose quote isn't found word for word in your resume. Stays in front of every model version.</div></div>
+      </div>
+    </div>
+
+    <div>
+      <h3>The numbers behind the design</h3>
+      <div class="stats">
+        <div class="stat"><span class="big">20.51M</span><span class="what">Fit Scorer parameters, 30% of them vocabulary</span><span class="src">Measured config</span></div>
+        <div class="stat"><span class="big">1.31×10⁸</span><span class="what">Training FLOPs per token, the input to the 6·N·D budget</span><span class="src">Measured</span></div>
+        <div class="stat"><span class="big">1.7%</span><span class="what">of Qwen3-0.6B trained by LoRA: 10.09M of ~600M weights</span><span class="src">Computed per layer</span></div>
+        <div class="stat"><span class="big">0</span><span class="what">LLM API calls per check. Nothing leaves your browser.</span><span class="src">Live</span></div>
+      </div>
+    </div>
+
+    <div>
+      <h3>Decisions and what they cost</h3>
+      <div class="decisions">
+        <article class="dr"><h4>Two small models, not one big prompt</h4><dl>
+          <dt>Because</dt><dd>Scoring is classification. Suggesting is constrained writing. They have different metrics and costs, the score feeds the writer, and each can fail and roll back on its own.</dd>
+          <dt>Tradeoff</dt><dd>More to build. At low volume, one API call (about half a cent a check) would ship sooner.</dd></dl></article>
+        <article class="dr"><h4>Qwen3-0.6B over the newer Qwen3.5-0.8B</h4><dl>
+          <dt>Because</dt><dd>On my benchmark, Qwen3.5's linear-attention layers had no fast kernels on Apple GPUs and trained at under 3 tokens/s.</dd>
+          <dt>Tradeoff</dt><dd>Slightly lower published benchmark scores, for a model that trains and serves on any stack.</dd></dl></article>
+        <article class="dr"><h4>Synthetic data over the best public dataset</h4><dl>
+          <dt>Because</dt><dd>The strongest public set, 8,000 labelled pairs, declares no license. A model trained on it can't be published.</dd>
+          <dt>Tradeoff</dt><dd>About $9 for license-clean data and labels (estimate), checked against 50 pairs I label by hand.</dd></dl></article>
+        <article class="dr"><h4>A verifier in code, not a promise in a prompt</h4><dl>
+          <dt>Because</dt><dd>A prompt can lower the hallucination rate. Only code can guarantee that every edit quotes your resume.</dd>
+          <dt>Tradeoff</dt><dd>Some good edits get dropped. For advice about your career, that's the right side to err on.</dd></dl></article>
+      </div>
+    </div>
+
+    <div>
+      <h3>Ship gates</h3>
+      <ol class="gates">
+        <li><span class="v">v1<small>Live</small></span><div><p>Rules engine and grounding verifier.</p><p>The baseline every model has to beat.</p></div></li>
+        <li><span class="v">v2<small>Scorer</small></span><div><p>Replaces v1 scoring only if macro-F1 on my 50-pair gold set beats the best baseline, sentence embeddings included, by at least 0.05, with Spearman ≥ 0.6.</p><p>If it doesn't, the embedding baseline ships and the write-up says so.</p></div></li>
+        <li><span class="v">v3<small>Writer</small></span><div><p>Replaces v1 suggestions only if the hallucination rate is ≤ 2% after the verifier and it wins ≥ 60% of pairwise judgments against the prompted base model.</p><p>Judge calibrated against my own ratings, with answer order randomised.</p></div></li>
+      </ol>
+    </div>
+
+    <div class="cta">
+      <a class="primary" href="guide.html">Read the build guide</a>
+      <a href="https://github.com/gauravpetwe123-ux/resumefit-web" target="_blank" rel="noopener">View the code</a>
+      <span>Designed and built by Gaurav Petwe, AI Product Manager</span>
+    </div>
+  </section>
+
   <footer>
     <details class="how" id="how">
       <summary>How scoring works</summary>
       <p>ResumeFit finds the skills and tools a job asks for, separates core requirements from nice-to-haves, and checks which ones your resume shows. Core requirements count twice as much as nice-to-haves. The score is 100 × P(strong) + 50 × P(partial), so it moves smoothly between tiers instead of jumping.</p>
       <p>Every suggestion quotes the line in your resume it's based on. If ResumeFit can't point to a line, it doesn't make the suggestion. Skills missing from your resume are listed as gaps, never as things to add.</p>
-      <p>This version runs on a rules engine in your browser. A trained fit model and a fine-tuned suggestions model are the planned next step.</p>
+      <p>Today this runs as version 1, a rules engine in your browser. The trained models and the gates they must pass are described under How it's built.</p>
     </details>
     <p>ResumeFit is a tool for job seekers working on their own resume. It isn't designed or tested for screening candidates.</p>
   </footer>
