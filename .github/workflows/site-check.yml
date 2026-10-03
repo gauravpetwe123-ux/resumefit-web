@@ -24,7 +24,9 @@ jobs:
           check() {
             url="$1"; expect="$2"
             for attempt in 1 2 3; do
-              if curl -fsSL --max-time 30 "$url" | grep -qF "$expect"; then
+              # Download fully before searching: piping into grep -q can cut curl off
+              # mid-transfer (SIGPIPE), which pipefail would report as a failure.
+              if body=$(curl -fsSL --max-time 30 "$url") && grep -qF "$expect" <<<"$body"; then
                 echo "OK  $url"; return 0
               fi
               echo "Attempt $attempt failed for $url, retrying in 20s"; sleep 20
